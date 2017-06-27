@@ -1,0 +1,321 @@
+<canvas id="gc"></canvas>
+<script>
+
+	//TODO: Add endgame conditions and make AI beatable
+
+	window.onload=function(){
+		gc=document.getElementById("gc"); //GameCanvas
+		c=gc.getContext("2d");
+		document.addEventListener("keydown",keyPush);
+		start();
+	}
+	//Global Declarations
+	var m; //the main menu setInterval
+	var g; //the game loop setInterval
+	var p; //the player
+	var ai; //the computer
+	
+	var dt = 1000/300; 	//delta time for updates in millis
+	var dti = 1/dt; 		//inverse of dt
+	//v(x|y)*dti = pixels per second
+	
+	var dtf = 1000/60;	//delta time for frames in millis
+	
+	var d = new Date();
+	var title="";
+	var gamex=640; //Establish dimensions of the canvas window
+	var gamey=480; //TODO: derive gc's properties from inside code;
+	var ingame=false;	//flag for being in a match
+	var waiting=true;	//flag for waiting in a menu
+	
+	var ents 		=[];	//array of entity objects; right now populated only by the ball, which is largely its own object
+	var brushes =[];	//array of brush objects - these include players and obstacles rendered as simple primitive shapes
+	
+	var palette = {
+		bg:		'rgb(0,0,0)',
+		text:	'rgb(255,255,255)',
+		field1:	'rgb(0,0,127)',
+		field2:	'rgb(127,0,0)'
+	};
+	
+	
+	//Coarse Game Functions
+	function main_menu(){
+		
+		c.fillStyle=palette.bg;
+		c.fillRect(0,0,gamex,gamey);
+		c.font="24px Courier";
+		c.fillStyle="white";
+		c.fillText("PRESS ENTER TO PLAY",10,30);
+		
+	}
+	
+	
+	function start(){
+		gc.setAttribute("width",""+gamex);
+		gc.setAttribute("height",""+gamey);
+		m = setInterval(main_menu,dtf);
+		//console.log(brushes);
+	}
+	
+
+	function start_game(){
+		ingame = true;
+		clearInterval(m);
+		//////////////////////
+		p=new brush(1.75, 'rgb(255,255,255)', 64, gamey/2, 0, 0,  12, 64);		
+		p.bounds = {x:0,y:0,w:gamex/3,h:gamey};
+		p.score = 0;
+		
+		p.move = function(){
+			if(this.x+this.vx>this.bounds.w) 
+				{this.vx = 0;
+				this.x = this.bounds.w;}
+			if(this.x+this.vx<this.bounds.x) 
+				{this.vx = 0;
+				this.x = this.bounds.x;}
+			if(this.y+this.vy>this.bounds.h) 
+				{this.vy = 0;
+				this.y = this.bounds.h;}
+			if(this.y+this.vy<this.bounds.y) 
+				{this.vy = 0;
+				this.y = this.bounds.y;}
+				
+			this.x+=this.vx*dti;
+			this.y+=this.vy*dti;
+			//console.log(this.x + ", " + this.y);
+		}
+		/////////////////////
+		ai=new brush(1.75, 'rgb(255,255,255)', gamex-64, gamey/2, 0,0,  12, 64);
+		ai.score = 0;
+		//
+		ai.move = function(){
+			
+			this.vy = (this.speed/3)*(Math.min(Math.max((ball.y-this.y),-3),3));
+			
+			//if the ball is close enough, strike it with some forward force
+			if(dist(this,ball) < 32) {this.vx =-this.speed/2;
+			this.vy = 0;}
+			else this.vx = 0;
+			
+			//if exceeding the boundaries of the game, stop moving - same code as p but differently TODO: FIKS
+			if(this.x+this.vx>gamex) 
+				{this.vx = 0;
+				this.x = gamex;}
+			if(this.x+this.vx<gamex*2/3) 
+				{this.vx = 0;
+				this.x = gamex*2/3;}
+			if(this.y+this.vy>gamey) 
+				{this.vy = 0;
+				this.y = gamey;}
+			if(this.y+this.vy<0) 
+				{this.vy = 0;
+				this.y = 0;}
+				
+				this.y+=this.vy*dti;
+		}
+		
+		//
+		ball = new entity(new Image(), gamex/2, gamey/2, 0, 0, 0, 0, 4, 4);
+		ball.img.src = "./res/img/ball.png";
+		console.log(ball.img.src);
+		
+		ball.move = function(){
+			this.vx+=this.ax*dti;
+			this.vy+=this.ay*dti;
+			
+			for(var i=0; i<brushes.length;i++){
+				if (colliding(this, brushes[i])) {
+					this.vx=(-this.vx)+brushes[i].vx*dti;
+					this.vy=this.vy+brushes[i].vy*dti;
+					
+					this.x += this.vx;
+					this.y += this.vy;
+					
+					brushes[i].dimy*=0.98;
+					brushes[i].speed*=1.1;
+					console.log("Player " + (i+1) + " speed: " +brushes[i].speed);
+				}
+			}
+			if(this.x>gamex-1) score(p);
+			if(this.x<1) score(ai);
+				this.x+=this.vx*dti;
+			if(this.y>gamey-1) this.vy =-this.vy;
+			if(this.y<1) this.vy =-this.vy;
+				this.y+=this.vy*dti;
+			
+		}
+		ball.reset = function(){
+			this.vx=(-1.25-Math.random()*2.5);
+			this.vy=(-0.5+Math.random()*1);
+			this.x=gamex/2;
+			this.y=gamey/2;
+		}
+		
+		ball.reset();
+		
+		//
+		brushes.push(p);
+		brushes.push(ai);
+		ents.push(ball);
+		
+		g=setInterval(update,dt); 
+		g=setInterval(render,dtf); //60fps
+	}
+	function update(){
+		
+		//update and render entities and brushes (do separately?)
+		for(var i=0; i<ents.length; i++){
+			ents[i].move();	
+		}
+		
+		for(var i=0; i<brushes.length; i++){	
+			brushes[i].move();			
+		}
+	}
+	
+	function render(){
+		
+		c.fillStyle=palette.bg;
+		c.fillRect(0,0,gamex,gamey);
+		
+		c.fillStyle=palette.field1;
+		c.fillRect(0,0,gamex/3,gamey,);
+		
+		c.fillStyle=palette.field2;
+		c.fillRect(gamex*2/3,0,gamex/3,gamey,);
+		
+		//update and render entities and brushes (do separately?)
+		for(var i=0; i<ents.length; i++){
+			ents[i].draw();	
+		}
+		
+		for(var i=0; i<brushes.length; i++){		
+			brushes[i].draw();		
+		}
+		
+		c.font="24px Courier";
+		c.fillStyle="white";
+		c.fillText("Score: "+ p.score,10,30);
+		c.fillText("Score: "+ai.score,436,30);
+	}
+	
+	function colliding(e, b){ //if an entity collides with a brush
+		if(	e.x < b.x+b.dimx/1.5 &&
+				e.x > b.x-b.dimx/1.5 && 
+				e.y < b.y+b.dimy/1.5 &&
+				e.y > b.y-b.dimy/1.5){
+			return true;
+		} else return false;
+		
+		
+	}
+	
+	function score(player){
+		player.score++;
+		for(var i=0; i<ents.length; i++){
+			ents[i].reset();
+		}
+		for(var i=0; i<brushes.length; i++){
+			brushes[i].reset();
+		}
+		
+		
+	}
+	function win(){}		//run on winning conditions
+	function lose(){}	//run on losing conditions
+	function end(){
+		clearInterval(g);
+		start();
+	} 	//for games with no win/lose conditions
+
+	//Fine Game Functions: important bits that recur a lot e.g physics aand geometry
+
+	function dist(e1, e2){
+		return Math.sqrt(Math.pow((e1.x-e2.x),2)+Math.pow((e1.y-e2.y),2));
+	}
+	
+	//User inputs
+	function keyPush(evt){
+		switch(evt.keyCode){ 
+			//180s invalid!!!!
+			case 13:
+				 waiting=false; 
+				 if(!ingame) start_game();
+				 break; 
+			case 37:
+				{p.vx=-p.speed;p.vy= 0;} break; 
+			case 38: 
+				{p.vx= 0;p.vy=-p.speed;} break;	
+			case 39: 
+				{p.vx= p.speed;p.vy= 0;} break;
+			case 40: 
+				{p.vx= 0;p.vy= p.speed;} break;
+		}
+	}
+	
+	//Class Definitions
+	function entity(img, x, y, vx, vy, ax, ay, dimx, dimy){
+		this.img=img;
+		this.x=x;
+		this.y=y;
+		this.vx=vx;
+		this.vy=vy;
+		this.ax=ax;
+		this.ay=ay;
+		this.dimx=dimx;
+		this.dimy=dimy;
+		this.drag=0.05;//*deltatime 
+		
+		this.move = function(){
+			if(this.x>gamex) this.x = 2;
+			if(this.x<0) this.x = gamex-2;
+				this.x+=this.vx*dti;
+			if(this.y>gamey) this.y = 2;
+			if(this.y<0) this.y = gamey-2;
+				this.y+=this.vy*dti;
+		}
+		
+		this.draw = function(){
+			c.drawImage(this.img, 0, 0, 8, 8, this.x, this.y, 12, 12)
+		}
+		
+		this.die = function(){
+			ents.splice(ents[this],1);
+		}
+	}
+	
+	function brush(speed, style, x, y, vx, vy, dimx, dimy, ){
+		this.style=style;
+		this.x=x;
+		this.y=y;
+		this.vx=vx;
+		this.vy=vy;
+		this.dimx=dimx;
+		this.dimy=dimy;
+		this.speed=speed;
+		
+		this.move = function(){
+			if(this.x>gamex) this.x = 0;
+			if(this.x<0) this.x = gamex;
+				this.x+=this.vx*dti;
+			if(this.y>gamey) this.y = 0;
+			if(this.y<0) this.y = gamey;
+				this.y+=this.vy*dti;
+			//console.log(this.x + ", " + this.y);
+		}
+		this.draw = function(){
+			c.fillStyle=this.style;
+			c.fillRect(this.x-(this.dimx/2), this.y-(this.dimy/2), this.dimx, this.dimy);
+		}
+		this.reset = function(){
+			this.vx=this.vy=0;
+			this.x = x;
+			this.y = y;
+			this.dimx = dimx;
+			this.dimy = dimy;
+			this.speed = speed;
+		}
+	}
+	
+</script>
