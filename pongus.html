@@ -2,6 +2,10 @@
 <script>
 
 	//TODO: Add endgame conditions and make AI beatable
+	
+	
+	
+	
 
 	window.onload=function(){
 		gc=document.getElementById("gc"); //GameCanvas
@@ -38,6 +42,14 @@
 		field2:	'rgb(127,0,0)'
 	};
 	
+	var audio = {
+		start : new Audio('res/snd/game_start.ogg'),
+		score_p : new Audio('res/snd/score_p.ogg'),
+		score_ai : new Audio('res/snd/score_ai.ogg'),
+		score : new Audio('res/snd/score.ogg'),
+		ping : new Audio('res/snd/ping.ogg')
+	};
+	
 	
 	//Coarse Game Functions
 	function main_menu(){
@@ -54,6 +66,7 @@
 	function start(){
 		gc.setAttribute("width",""+gamex);
 		gc.setAttribute("height",""+gamey);
+		
 		m = setInterval(main_menu,dtf);
 		//console.log(brushes);
 	}
@@ -86,7 +99,7 @@
 			//console.log(this.x + ", " + this.y);
 		}
 		/////////////////////
-		ai=new brush(1.75, 'rgb(255,255,255)', gamex-64, gamey/2, 0,0,  12, 64);
+		ai=new brush(1.45, 'rgb(255,255,255)', gamex-64, gamey/2, 0,0,  12, 64);
 		ai.score = 0;
 		//
 		ai.move = function(){
@@ -121,12 +134,12 @@
 		console.log(ball.img.src);
 		
 		ball.move = function(){
-			this.vx+=this.ax*dti;
-			this.vy+=this.ay*dti;
+			this.vx= (this.vx) + this.ax*dti;
+			this.vy= (this.vy) + this.ay*dti;
 			
 			for(var i=0; i<brushes.length;i++){
 				if (colliding(this, brushes[i])) {
-					this.vx=(-this.vx)+brushes[i].vx*dti;
+					this.vx=-this.vx+brushes[i].vx*dti;
 					this.vy=this.vy+brushes[i].vy*dti;
 					
 					this.x += this.vx;
@@ -134,6 +147,9 @@
 					
 					brushes[i].dimy*=0.98;
 					brushes[i].speed*=1.1;
+					
+					audio.ping.play();
+					
 					console.log("Player " + (i+1) + " speed: " +brushes[i].speed);
 				}
 			}
@@ -158,6 +174,8 @@
 		brushes.push(p);
 		brushes.push(ai);
 		ents.push(ball);
+		
+		audio.start.play();
 		
 		g=setInterval(update,dt); 
 		g=setInterval(render,dtf); //60fps
@@ -220,6 +238,7 @@
 			brushes[i].reset();
 		}
 		
+		audio.score.play();
 		
 	}
 	function win(){}		//run on winning conditions
@@ -265,7 +284,7 @@
 		this.ay=ay;
 		this.dimx=dimx;
 		this.dimy=dimy;
-		this.drag=0.05;//*deltatime 
+		this.drag=0.995;//*deltatime 
 		
 		this.move = function(){
 			if(this.x>gamex) this.x = 2;
