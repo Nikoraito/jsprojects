@@ -1,11 +1,22 @@
-<canvas id="gc"></canvas>
+<!DOCTYPE html>
+<html>
+	<head>
+	<meta charset="UTF-8">
+		<title>Pongus</title>
+	</head>
+	<body>
+		<canvas id="gc" width="640" height="480"></canvas>
+	</body>
+	
+</html>
+
+
+
 <script>
 
 	//TODO: Add endgame conditions and make AI beatable
 	
-	
-	
-	
+
 
 	window.onload=function(){
 		gc=document.getElementById("gc"); //GameCanvas
@@ -19,8 +30,8 @@
 	var p; //the player
 	var ai; //the computer
 	
-	var dt = 1000/300; 	//delta time for updates in millis
-	var dti = 1/dt; 		//inverse of dt
+	var dt = 1000/200; 	//delta time for updates in millis
+	var dti = 1/dt; 	//inverse of dt
 	//v(x|y)*dti = pixels per second
 	
 	var dtf = 1000/60;	//delta time for frames in millis
@@ -219,10 +230,10 @@
 	}
 	
 	function colliding(e, b){ //if an entity collides with a brush
-		if(	e.x < b.x+b.dimx/1.5 &&
-				e.x > b.x-b.dimx/1.5 && 
-				e.y < b.y+b.dimy/1.5 &&
-				e.y > b.y-b.dimy/1.5){
+		if(	e.x < b.x+b.dimx &&
+				e.x > b.x-b.dimx && 
+				e.y < b.y+b.dimy &&
+				e.y > b.y-b.dimy){
 			return true;
 		} else return false;
 		

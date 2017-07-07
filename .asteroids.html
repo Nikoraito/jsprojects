@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+	<head>
+	<meta charset="UTF-8">
+		<title>Asteroids Clone</title>
+	</head>
+	<body>
+		<canvas id="gc" width="480" height="640"></canvas>
+	</body>
+	
+</html>
+<script>
+	window.onload=function(){
+		gc=document.getElementById("gc"); //GameCanvas
+		c=gc.getContext("2d");
+		document.addEventListener("keydown",keyDown);
+		document.addEventListener("keyup",keyUp);
+		start();
+	}
+	//Global Declarations
+	var m; //the main menu setInterval
+	var g; //the game loop setInterval
+	var p; //the player
+	var ai; //the computer
+	
+	var dt = 1000/30; 	//delta time for updates in millis
+	var dti = dt/1000; 		
+	//v(x|y)*dti = pixels per second
+	
+	var dtf = 1000/60;	//delta time for frames in millis
+	
+	var d = new Date();
+	var title="";
+	var gamex=640; //Establish dimensions of the canvas window
+	var gamey=480; //TODO: derive gc's properties from inside code;
+	var ingame=false;	//flag for being in a match
+	var waiting=true;	//flag for waiting in a menu
+	
+	var ents = [];	//array of entities
+	
+	var palette = {
+		bg:		'rgb(0,0,0)',
+		def: 'rgb(191,191,191)',
+		text:	'rgb(255,255,255)',
+		laser: 'rgb(255,63,63)',
+		plasma: 'rgb(0,255,255)',
+		fire: 'rgb(255,191,31)',
+		asteroid: 'rgb(191,191,191)'
+	};
+	
+	var audio = {
+		start : new Audio('res/snd/game_start.ogg')
+	};
+	
+	
+	//Coarse Game Functions
+	function main_menu(){
+		
+		c.fillStyle=palette.bg;
+		c.fillRect(0,0,gamex,gamey);
+		c.font="24px Courier";
+		c.fillStyle="white";
+		c.fillText("PRESS ENTER TO PLAY",10,30);
+		
+	}
+	
+	
+	function start(){
+		gc.setAttribute("width",""+gamex);
+		gc.setAttribute("height",""+gamey);
+		
+		m = setInterval(main_menu,dtf);
+		//console.log(brushes);
+	}
+	
+
+	function start_game(){
+		ingame = true;
+		clearInterval(m);
+		//////////////////////player
+		player = new entity(new Image(), gamex/2, gamey/2, 0, 0, 0, 0, 0, 0, 48, 48);
+		player.img.src='res/img/ship.png';
+		
+		ents.push(player);
+		//////////////////////
+		
+		audio.start.play();
+		
+		g=setInterval(update,dt); 	//update game logic...
+		g=setInterval(render,dtf); 	//...and graphics separately
+	}
+	function update(){
+		//update and render entities and brushes (do separately?)
+		for(var i=0; i<ents.length; i++){
+			ents[i].move();	
+		}
+		//console.log('u');
+	}
+	
+	function render(){
+		
+		c.fillStyle=palette.bg;
+		c.fillRect(0,0,gamex,gamey);
+		
+		//update and render entities and brushes (do separately?)
+		for(var i=0; i<ents.length; i++){
+			ents[i].draw();	
+		}
+		//console.log('r');
+		
+	}
+	
+	function colliding(e, b){ //if center of an entity collides with another entity
+		if(	e.x < b.x+b.dimx/1.5 &&
+				e.x > b.x-b.dimx/1.5 && 
+				e.y < b.y+b.dimy/1.5 &&
+				e.y > b.y-b.dimy/1.5){
+			return true;
+		} else return false;
+	}
+	
+	function score(){
+	}
+	function win(){}		//run on winning conditions
+	function lose(){}	//run on losing conditions
+	function end(){
+		clearInterval(g);
+		start();
+	} 	//for games with no win/lose conditions
+
+	//Fine Game Functions: important bits that recur a lot e.g physics aand geometry
+
+	function dist(e1, e2){
+		return Math.sqrt(Math.pow((e1.x-e2.x),2)+Math.pow((e1.y-e2.y),2));
+	}
+	
+	//User input
+
+	
+		function keyDown(evt){	//the event and controlled entity (the player's entity)
+		switch(evt.keyCode){ 
+			case 13:
+				 waiting=false; 
+				 if(!ingame) start_game();
+				 else{}
+				 break;
+			case 37: //Left
+			case 65: //A
+				{	player.setspin(-1.0);
+				} break;
+			case 38: //Down
+			case 83: //S
+				{ player.setthrust(-1.0);
+				} break;
+			case 39: //Right
+			case 68: //D
+				{ player.setspin(1.0);
+				} break;
+			case 40: //Up
+			case 87: //W
+				{ player.setthrust(1.0);
+				} break;
+		}
+	}
+	
+	function keyUp(evt){	//the event and controlled entity (the player's entity)
+		switch(evt.keyCode){ 
+			case 37: //Left
+			case 65: //A
+				{	player.setspin(0);
+				} break;
+			case 38: //Down
+			case 83: //S
+				{ player.setthrust(0);
+				} break;
+			case 39: //Right
+			case 68: //D
+				{ player.setspin(0);
+				} break;
+			case 40: //Up
+			case 87: //W
+				{ player.setthrust(0);
+				} break;
+		}
+	}
+	
+	//Class Definitions
+	function entity(img, x, y, vx, vy, ax, ay, angle, angvel, dimx, dimy){
+		this.img=img;	//image sprite for the entity
+		this.x=x;			//x position
+		this.y=y;			//y position
+		this.vx=vx;		//x velocity
+		this.vy=vy;		//y velocity
+		this.ax=ax;		//x acceleration
+		this.ay=ay;		//y acceleration
+		
+		this.angle=angle;		//angle
+		this.angvel=angvel;	//angular velocity
+		
+		this.dimx=dimx;
+		this.dimy=dimy;
+		this.weapon=new weapon();
+		
+		this.spin	=	0;	//extra acceleration applied per frame representing player-controller impulses
+		this.thrust = 0;
+		
+		this.thrustmax	=	100.0;
+		this.spinmax=2.0;
+		
+		this.move = function(){ //Toroidal motion
+			if(this.x>gamex) {this.x = 0;} 				//
+			else if(this.x<0) {this.x = gamex;}		//
+			if(this.y>gamey) {this.y = 0;}				//
+			else if(this.y<0) {this.y = gamey;}		//
+			
+				
+				
+				this.vx	+=	(this.ax+Math.sin(this.angle)*this.thrust*this.thrustmax)*dti;	//Linear motion
+				this.vy	+=	(this.ay+-Math.cos(this.angle)*this.thrust*this.thrustmax)*dti;
+				this.x	+=	this.vx*dti;
+				this.y	+=	this.vy*dti;	
+				
+				this.angvel = this.spin*this.spinmax;	//Angular motion
+				this.angle += this.angvel*dti;
+				
+		}
+		
+		this.draw = function(){
+			c.translate(this.x, this.y);		//move to the center of the entity
+			c.rotate(this.angle);			//rotate to the angle of the entity
+			c.drawImage(this.img, -(this.dimx/2), -(this.dimy/2), this.dimy, this.dimy);	//render the entity
+			c.rotate(-this.angle);			//revert angle
+			c.translate(-this.x, -this.y);	//revert position
+		}
+		
+		this.die = function(){
+			ents.splice(ents[this],1);	//remove this entity from the list of entities and simply no longer render or account for it
+		}
+		
+		this.setthrust = function(magnitude){
+			this.thrust = magnitude;
+		}
+		
+		this.setspin = function(spin){	
+			this.spin = spin;
+		}
+		
+	}
+	
+	function weapon(){
+		
+	}	
+
+</script>
