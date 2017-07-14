@@ -35,16 +35,16 @@ function Player(position){
 	this.draw = function(context){
 		context.beginPath();
 		context.fillStyle="#FFF";
-    context.moveTo(-20, 0);
-    context.lineTo(15, 10);
-    context.lineTo(15, -10);
+    context.moveTo(20, 0);
+    context.lineTo(-15, 10);
+    context.lineTo(-15, -10);
 		context.fill();
 	}
 	
 	this.fire = function(){
 		ents.push(new Bullet(
-			this.position.add(new Vector_Radial(this.angle, -(this.radius+2)).to_vector2()), 
-			this.velocity.add(new Vector_Radial(this.angle, -200).to_vector2())
+			this.position.add(new Vector_Radial(this.angle, (this.radius+2)).to_vector2()), 
+			this.velocity.add(new Vector_Radial(this.angle, 200).to_vector2())
 		)
 		);
 	}

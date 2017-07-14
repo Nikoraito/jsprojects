@@ -5,7 +5,7 @@ var p; // the player
 var ents 		=	[];
 var ingame	=	false;	//flag for being in a match
 
-var dt 				= 1000/300; //delta time for setInterval
+var dt 				= 1000/100; //delta time for setInterval
 var dt_phys 	= dt/1000; 	//dt for physics
 
 var dt_vis 		= 1000/40;	//dt for frames 
@@ -112,7 +112,7 @@ function update(){
 	p_tv = new Vector_Radial(p.angle, p.thrust);
 	p.velocity.x += p_tv.get_x()*dt_phys;
 	p.velocity.y += p_tv.get_y()*dt_phys;
-	
+	//Collision Detection (All Entities are Spheres)
 	for(var i = 0; i<ents.length; i++){
 		for(var j = i+1; j<ents.length; j++){
 				if(
@@ -164,7 +164,7 @@ function keyDown(evt){
 			case 65: //A
 				{	p.angvel = -1 * p.spinmax;
 				} break;
-			case 38: //Down
+			case 40: //Down
 			case 83: //S
 				{ p.thrust = -1 * p.thrustmax;
 				} break;
@@ -172,7 +172,8 @@ function keyDown(evt){
 			case 68: //D
 				{ p.angvel = 1 * p.spinmax;
 				} break;
-			case 40: //Up
+			
+			case 38: //Up
 			case 87: //W
 				{ p.thrust = 1 * p.thrustmax;
 				} break;
